@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import numpy as np
 import streamlit as st
@@ -5,7 +7,7 @@ from ultralytics import YOLO
 
 title = "Dental charting automation from panoramic x-rays"
 shift = 1
-models = {"../models/yolov8x-seg-dentex-numbering": None}
+models = {"yolov8x-seg-dentex-numbering.pt": None}
 
 
 def create_opencv_image_from_stringio(img_stream, cv2_img_flag=1):
@@ -14,10 +16,10 @@ def create_opencv_image_from_stringio(img_stream, cv2_img_flag=1):
     return cv2.imdecode(img_array, cv2_img_flag)
 
 
-def predict_yolo(model_path, image, threshold=0.5):
-    if models[model_path] is None:
-        models[model_path] = YOLO(model_path)
-    outputs = models[model_path].predict(image)
+def predict_yolo(model_name, image, threshold=0.5):
+    if models[model_name] is None:
+        models[model_name] = YOLO(os.path.join("./models/", model_name))
+    outputs = models[model_name].predict(image)
     classes = outputs[0].boxes.cls.tolist()
     scores = outputs[0].boxes.conf.tolist()
     boxes = outputs[0].boxes.xyxy.tolist()
@@ -49,10 +51,10 @@ def draw_instances(
     img,
     polygons,
     labels,
-    color_polygon=(0, 0, 220),
-    color_font=(255, 255, 255),
+    color_polygon,
+    color_font,
     thickness=3,
-    font_size=1.5,
+    font_size=1.0,
     font=cv2.FONT_HERSHEY_SIMPLEX,
     alpha=0.15,
 ):
@@ -102,12 +104,12 @@ if img_file_buffer is not None:
 
     polygons, labels = predict_yolo(list(models.keys())[0], open_cv_image)
     img = draw_instances(
-        open_cv_image.copy(), polygons, labels, color_polygon=(220, 0, 0)
+        open_cv_image.copy(), polygons, labels, color_polygon=(0, 220, 0), color_font=(0, 0, 0)
     )
     st.image(
         img,
         caption=[
             "DENTEX-numbering",
         ],
-        channels="BGR",
+        channels="RGB",
     )
