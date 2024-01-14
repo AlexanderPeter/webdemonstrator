@@ -5,7 +5,7 @@ from ultralytics import YOLO
 
 title = "Dental charting automation from panoramic x-rays"
 shift = 1
-models = {"../models/yolov8x-seg-dentex-diseases.pt": None}
+models = {"../models/yolov8x-seg-dentex-numbering": None}
 
 
 def create_opencv_image_from_stringio(img_stream, cv2_img_flag=1):
@@ -107,7 +107,7 @@ if img_file_buffer is not None:
     st.image(
         img,
         caption=[
-            "DENTEX-diseases: 1=Impacted, 2=Caries, 3=Periapical Lesion, 4=Deep Caries",
+            "DENTEX-numbering",
         ],
         channels="BGR",
     )
