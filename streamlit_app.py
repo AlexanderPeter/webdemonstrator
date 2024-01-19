@@ -105,7 +105,9 @@ def draw_instances(
 st.title(title)
 
 if st.button('Reset model'):
-    os.remove("models/yolo_segmentation_tufts_diseases.pt")
+    file_path = "models/yolo_segmentation_tufts_diseases.pt"
+    if os.path.isfile(file_path):
+        os.remove(file_path)
     st.toast("Models reset")
 
 img_file_buffer = st.file_uploader(
