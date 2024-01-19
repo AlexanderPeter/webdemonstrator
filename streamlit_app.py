@@ -13,6 +13,7 @@ def merge_chunks(file_path):
     folder_path = file_path + "_chunks"
     file_merged = open(file_path, "wb")
     for file_name in os.listdir(folder_path):
+        print(f"Reading {file_name}")
         file_chunk = open(os.path.join(folder_path, file_name), "rb")
         content = file_chunk.read(chunk_size)
         file_merged.write(content)
@@ -105,6 +106,10 @@ def draw_instances(
 st.set_page_config(page_title=title, page_icon="🦷")
 st.title(title)
 
+if st.button('Reset model'):
+    os.remove("models/yolo_segmentation_tufts_diseases.pt")
+    print("Models reset")
+
 img_file_buffer = st.file_uploader(
     "Choose image file to detect",
     type=["png", "jpg", "jpeg"],
@@ -119,8 +124,6 @@ if img_file_buffer is not None:
     )
     st.image(
         img,
-        caption=[
-            "Tufts-diseases",
-        ],
+        caption=["Prediction"],
         channels="RGB",
     )
