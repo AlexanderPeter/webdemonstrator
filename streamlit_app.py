@@ -5,24 +5,36 @@ import numpy as np
 import streamlit as st
 from ultralytics import YOLO
 
+chunk_size = 1024*1024*32
 title = "Dental charting automation from panoramic x-rays"
 shift = 1
-models = {"yolov8x-seg-dentex-numbering.pt": None}
 
+def merge_chunks(file_path):
+    folder_path = file_path + "_chunks"
+    file_merged = open(file_path, "wb")
+    for file_name in os.listdir(folder_path):
+        file_chunk = open(os.path.join(folder_path, file_name), "rb")
+        content = file_chunk.read(chunk_size)
+        file_merged.write(content)
+    file_merged.close()
 
 def create_opencv_image_from_stringio(img_stream, cv2_img_flag=1):
     img_stream.seek(0)
     img_array = np.asarray(bytearray(img_stream.read()), dtype=np.uint8)
     return cv2.imdecode(img_array, cv2_img_flag)
 
-
 def predict_yolo(model_name, image, threshold=0.5):
-    if models[model_name] is None:
-        models[model_name] = YOLO(os.path.join("./models/", model_name))
-    outputs = models[model_name].predict(image)
+    file_path = os.path.join("models", model_name)
+    if not os.path.isfile(path):
+        merge_chunks(file_path)
+    model = YOLO(file_path, task="segment")
+    outputs = model.predict(image)
     classes = outputs[0].boxes.cls.tolist()
+    print(classes)
     scores = outputs[0].boxes.conf.tolist()
+    print(scores)
     boxes = outputs[0].boxes.xyxy.tolist()
+    print(boxes)
     masks = (
         [mask.tolist() for mask in outputs[0].masks.xy]
         if outputs[0].masks is not None
@@ -45,7 +57,6 @@ def predict_yolo(model_name, image, threshold=0.5):
                 polygons.append(mask)
             labels.append(int(label + shift))
     return polygons, labels
-
 
 def draw_instances(
     img,
@@ -102,14 +113,14 @@ img_file_buffer = st.file_uploader(
 if img_file_buffer is not None:
     open_cv_image = create_opencv_image_from_stringio(img_file_buffer)
 
-    polygons, labels = predict_yolo(list(models.keys())[0], open_cv_image)
+    polygons, labels = predict_yolo("yolo_segmentation_tufts_diseases.pt", open_cv_image)
     img = draw_instances(
         open_cv_image.copy(), polygons, labels, color_polygon=(0, 220, 0), color_font=(0, 0, 0)
     )
     st.image(
         img,
         caption=[
-            "DENTEX-numbering",
+            "Tufts-diseases",
         ],
         channels="RGB",
     )
