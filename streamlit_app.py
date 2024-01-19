@@ -25,7 +25,7 @@ def create_opencv_image_from_stringio(img_stream, cv2_img_flag=1):
 
 def predict_yolo(model_name, image, threshold=0.5):
     file_path = os.path.join("models", model_name)
-    if not os.path.isfile(path):
+    if not os.path.isfile(file_path):
         merge_chunks(file_path)
     model = YOLO(file_path, task="segment")
     outputs = model.predict(image)
