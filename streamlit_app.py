@@ -11,15 +11,22 @@ title = "Dental charting automation from panoramic x-rays"
 shift = 1
 st.set_page_config(page_title=title, page_icon="🦷")
 
+
 def merge_chunks(file_path):
     folder_path = file_path + "_chunks"
     file_merged = open(file_path, "wb")
-    for file_name in os.listdir(folder_path):
-        st.toast(f"Reading {file_name}")
-        file_chunk = open(os.path.join(folder_path, file_name), "rb")
+    counter = 0
+    chunk_path = os.path.join(folder_path, f"chunk{counter}.txt")
+    while os.path.isfile(chunk_path): 
+        st.toast(f"Reading {chunk_path}")
+        file_chunk = open(chunk_path, "rb")
         content = file_chunk.read(chunk_size)
         file_merged.write(content)
+        counter += 1
+        chunk_path = os.path.join(folder_path, f"chunk{counter}.txt")
     file_merged.close()
+
+
 
 def create_opencv_image_from_stringio(img_stream, cv2_img_flag=1):
     img_stream.seek(0)
