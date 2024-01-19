@@ -1,4 +1,5 @@
 import os
+import time
 
 import cv2
 import numpy as np
@@ -8,12 +9,13 @@ from ultralytics import YOLO
 chunk_size = 1024*1024*32
 title = "Dental charting automation from panoramic x-rays"
 shift = 1
+st.set_page_config(page_title=title, page_icon="🦷")
 
 def merge_chunks(file_path):
     folder_path = file_path + "_chunks"
     file_merged = open(file_path, "wb")
     for file_name in os.listdir(folder_path):
-        print(f"Reading {file_name}")
+        st.toast(f"Reading {file_name}")
         file_chunk = open(os.path.join(folder_path, file_name), "rb")
         content = file_chunk.read(chunk_size)
         file_merged.write(content)
@@ -31,11 +33,8 @@ def predict_yolo(model_name, image, threshold=0.5):
     model = YOLO(file_path, task="segment")
     outputs = model.predict(image)
     classes = outputs[0].boxes.cls.tolist()
-    print(classes)
     scores = outputs[0].boxes.conf.tolist()
-    print(scores)
     boxes = outputs[0].boxes.xyxy.tolist()
-    print(boxes)
     masks = (
         [mask.tolist() for mask in outputs[0].masks.xy]
         if outputs[0].masks is not None
@@ -103,12 +102,11 @@ def draw_instances(
     return img
 
 
-st.set_page_config(page_title=title, page_icon="🦷")
 st.title(title)
 
 if st.button('Reset model'):
     os.remove("models/yolo_segmentation_tufts_diseases.pt")
-    print("Models reset")
+    st.toast("Models reset")
 
 img_file_buffer = st.file_uploader(
     "Choose image file to detect",
