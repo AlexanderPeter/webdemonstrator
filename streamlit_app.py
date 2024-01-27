@@ -1,3 +1,4 @@
+# imports
 import os
 import time
 
@@ -6,11 +7,25 @@ import numpy as np
 import streamlit as st
 from ultralytics import YOLO
 
+# constants
 chunk_size = 1024*1024*32
 title = "Dental charting automation from panoramic x-rays"
 shift = 1
-st.set_page_config(page_title=title, page_icon="🦷")
+available_models = os.listdir("models/chunks/")
+color_palette = [
+    "#000000", 
+    "#ffff00", "#ff8800", 
+    "#ff0000", # "#ff0088", 
+    "#ff00ff", # "#8800ff", 
+    "#0000ff", # "#0088ff", 
+    "#00ffff",  "#00ff88", 
+    "#00ff00", "#88ff00"
+]
+tufts_classes = ["Crown", "Decay", "Apical", "RCT", "Filling", "Abutment", "Pontic", "Implant"]
+dentex_classes = ["Impacted", "Caries", "Periapical Lesion", "Deep Caries"]
 
+
+# functions
 def merge_chunks(model_name):
     st.toast(f"Preparing {model_name}")
     file_path = os.path.join("models", model_name)
@@ -66,8 +81,7 @@ def draw_instances(
     img,
     polygons,
     labels,
-    color_polygon=(255, 255, 0),
-    color_font=(0, 0, 0),
+    hex_colors,
     thickness=2,
     font_size=1.0,
     font=cv2.FONT_HERSHEY_SIMPLEX,
@@ -76,6 +90,11 @@ def draw_instances(
 ):
     overlay = img.copy()
     for polygon, label in zip(polygons, labels):
+        if len(hex_colors) <= label:
+            hex_color_polygon = hex_colors[len(hex_colors)-1]
+        else:
+            hex_color_polygon = hex_colors[label % len(hex_colors)]
+        color_polygon = tuple(int(hex_color_polygon[1:][i:i+2], 16) for i in (0, 2, 4))
         if len(polygon) < 3:
             continue
         coords = np.int32([polygon])
@@ -85,6 +104,7 @@ def draw_instances(
         )
     img = cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0)
 
+    color_font = tuple(int(hex_colors[0][1:][i:i+2], 16) for i in (0, 2, 4))
     for polygon, label in zip(polygons, labels):
         if len(polygon) < 3:
             continue
@@ -113,14 +133,23 @@ def draw_instances(
     return img
 
 
+# content
+st.set_page_config(page_title=title, page_icon="🦷")
 st.title(title)
-
-available_models = os.listdir("models/chunks/")
-selected_model = st.selectbox("What model should be used?", available_models)
-
-hex_color_polygon = st.color_picker('Label color', '#ffff00')
-hex_color_font = st.color_picker('Font color', '#000000')
-
+selected_model = st.sidebar.selectbox("What model should be used?", available_models)
+hex_colors = []
+hex_colors.append(st.sidebar.color_picker("Color font ", color_palette[0]))
+if "numbering" in selected_model:
+    hex_colors.append(st.sidebar.color_picker("Color label ", color_palette[1]))
+elif "tufts_diseases" in selected_model:
+    for i in range(len(tufts_classes)):
+        hex_colors.append(st.sidebar.color_picker(f"Color class {i}: {tufts_classes[i]}", color_palette[i+1]))
+elif "dentex_diseases" in selected_model:
+    for i in range(len(dentex_classes)):
+        hex_colors.append(st.sidebar.color_picker(f"Color class {i}: {dentex_classes[i]}", color_palette[2*i+1]))
+else:
+    for i in range(len(color_palette) -1 ):
+        hex_colors.append(st.sidebar.color_picker(f"Color class {i}", color_palette[i+1]))
 
 img_file_buffer = st.file_uploader(
     "Choose image file to detect",
@@ -130,12 +159,9 @@ img_file_buffer = st.file_uploader(
 
 if img_file_buffer is not None:
     open_cv_image = create_opencv_image_from_stringio(img_file_buffer)
-
     polygons, labels = predict_yolo(selected_model, open_cv_image)
-    color_polygon = tuple(int(hex_color_polygon[1:][i:i+2], 16) for i in (0, 2, 4))
-    color_font = tuple(int(hex_color_font[1:][i:i+2], 16) for i in (0, 2, 4))
     img = draw_instances(
-        open_cv_image.copy(), polygons, labels, color_polygon=color_polygon, color_font=color_font
+        open_cv_image.copy(), polygons, labels, hex_colors
     )
     st.image(
         img,
